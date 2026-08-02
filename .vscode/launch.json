@@ -1,0 +1,12 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "java",
+            "name": "Run Spring Boot App",
+            "request": "launch",
+            "mainClass": "com.laybhari.LaybhariBackendApplication",
+            "projectName": "laybhari-backend"
+        }
+    ]
+}
