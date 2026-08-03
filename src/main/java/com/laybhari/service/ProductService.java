@@ -64,7 +64,20 @@ public class ProductService {
         Product product = new Product();
         product.setName(request.getName());
         product.setDescription(request.getDescription());
-        product.setImageUrl(request.getImageUrl());
+
+        List<String> images = new ArrayList<>();
+        if (request.getImageUrls() != null && !request.getImageUrls().isEmpty()) {
+            for (String img : request.getImageUrls()) {
+                if (img != null && !img.trim().isEmpty()) {
+                    images.add(img.trim());
+                }
+            }
+        }
+        if (images.isEmpty() && request.getImageUrl() != null && !request.getImageUrl().trim().isEmpty()) {
+            images.add(request.getImageUrl().trim());
+        }
+        product.setImageUrls(images);
+        product.setImageUrl(!images.isEmpty() ? images.get(0) : request.getImageUrl());
         product.setCategory(category);
 
         if (request.getVariants() != null && !request.getVariants().isEmpty()) {
@@ -95,7 +108,21 @@ public class ProductService {
 
         product.setName(request.getName());
         product.setDescription(request.getDescription());
-        product.setImageUrl(request.getImageUrl());
+
+        List<String> images = new ArrayList<>();
+        if (request.getImageUrls() != null && !request.getImageUrls().isEmpty()) {
+            for (String img : request.getImageUrls()) {
+                if (img != null && !img.trim().isEmpty()) {
+                    images.add(img.trim());
+                }
+            }
+        }
+        if (images.isEmpty() && request.getImageUrl() != null && !request.getImageUrl().trim().isEmpty()) {
+            images.add(request.getImageUrl().trim());
+        }
+        product.setImageUrls(images);
+        product.setImageUrl(!images.isEmpty() ? images.get(0) : request.getImageUrl());
+
         product.setUpdatedAt(LocalDateTime.now());
 
         if (request.getVariants() != null) {
@@ -166,6 +193,11 @@ public class ProductService {
         dto.setName(product.getName());
         dto.setDescription(product.getDescription());
         dto.setImageUrl(product.getImageUrl());
+        List<String> imgs = product.getImageUrls() != null ? new ArrayList<>(product.getImageUrls()) : new ArrayList<>();
+        if (imgs.isEmpty() && product.getImageUrl() != null && !product.getImageUrl().isEmpty()) {
+            imgs.add(product.getImageUrl());
+        }
+        dto.setImageUrls(imgs);
         dto.setIsActive(product.getIsActive());
         if (product.getCategory() != null) {
             dto.setCategoryId(product.getCategory().getId());
@@ -197,6 +229,11 @@ public class ProductService {
         dto.setName(product.getName());
         dto.setDescription(product.getDescription());
         dto.setImageUrl(product.getImageUrl());
+        List<String> imgs = product.getImageUrls() != null ? new ArrayList<>(product.getImageUrls()) : new ArrayList<>();
+        if (imgs.isEmpty() && product.getImageUrl() != null && !product.getImageUrl().isEmpty()) {
+            imgs.add(product.getImageUrl());
+        }
+        dto.setImageUrls(imgs);
         dto.setIsActive(product.getIsActive());
         if (product.getCategory() != null) {
             dto.setCategoryId(product.getCategory().getId());

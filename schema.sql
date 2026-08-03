@@ -39,6 +39,13 @@ CREATE TABLE IF NOT EXISTS products (
     FOREIGN KEY (category_id) REFERENCES categories(id)
 );
 
+-- ---------- PRODUCT IMAGES ----------
+CREATE TABLE IF NOT EXISTS product_images (
+    product_id    BIGINT        NOT NULL,
+    image_url     TEXT          NOT NULL,
+    FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
+);
+
 -- ---------- PRODUCT VARIANTS ----------
 CREATE TABLE IF NOT EXISTS product_variants (
     id            BIGINT AUTO_INCREMENT PRIMARY KEY,

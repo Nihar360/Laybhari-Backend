@@ -11,6 +11,7 @@ public class ProductDto {
     private String name;
     private String description;
     private String imageUrl;
+    private List<String> imageUrls = new ArrayList<>();
     private Boolean isActive;
     private Long categoryId;
     private String categoryName;
@@ -36,6 +37,7 @@ public class ProductDto {
         private String name;
         private String description;
         private String imageUrl;
+        private List<String> imageUrls = new ArrayList<>();
         private Long categoryId;
         private List<ProductVariantDto> variants = new ArrayList<>();
     }
