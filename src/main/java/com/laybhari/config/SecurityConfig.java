@@ -82,8 +82,13 @@ public class SecurityConfig {
                 .filter(s -> !s.isEmpty())
                 .collect(Collectors.toList());
 
-        config.setAllowedOrigins(origins);
-        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        boolean hasWildcard = origins.stream().anyMatch(o -> o.contains("*"));
+        if (hasWildcard) {
+            config.setAllowedOriginPatterns(origins);
+        } else {
+            config.setAllowedOrigins(origins);
+        }
+        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         config.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Requested-With", "Accept", "Origin"));
         config.setAllowCredentials(true);
 

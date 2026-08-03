@@ -26,4 +26,4 @@ razorpay:
   key-secret: ${RAZORPAY_KEY_SECRET:ki8x4Sgr76UnNrHBnD85uanY}
 
 cors:
-  allowed-origins: ${ALLOWED_ORIGINS:http://localhost:5173,http://localhost:3000,http://localhost:4173}
+  allowed-origins: ${ALLOWED_ORIGINS:http://localhost:5173,http://localhost:3000,http://localhost:4173,https://*.vercel.app,*}
