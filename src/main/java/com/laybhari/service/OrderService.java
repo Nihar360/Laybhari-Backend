@@ -38,6 +38,8 @@ public class OrderService {
     private final CartItemRepository cartItemRepository;
     private final UserRepository userRepository;
     private final AddressService addressService;
+    private final EmailService emailService;
+    private final WhatsAppService whatsAppService;
 
     @Value("${razorpay.key-id}")
     private String razorpayKeyId;
@@ -53,13 +55,17 @@ public class OrderService {
                         CartRepository cartRepository,
                         CartItemRepository cartItemRepository,
                         UserRepository userRepository,
-                        AddressService addressService) {
+                        AddressService addressService,
+                        EmailService emailService,
+                        WhatsAppService whatsAppService) {
         this.orderRepository = orderRepository;
         this.addressRepository = addressRepository;
         this.cartRepository = cartRepository;
         this.cartItemRepository = cartItemRepository;
         this.userRepository = userRepository;
         this.addressService = addressService;
+        this.emailService = emailService;
+        this.whatsAppService = whatsAppService;
     }
 
     private User getUserByEmail(String identifier) {
@@ -260,6 +266,11 @@ public class OrderService {
         order.setStatus(targetStatus);
         order.setUpdatedAt(LocalDateTime.now());
         Order saved = orderRepository.save(order);
+
+        if (!"CONFIRMED".equalsIgnoreCase(oldStatus) && "CONFIRMED".equalsIgnoreCase(targetStatus)) {
+            sendOrderNotifications(saved);
+        }
+
         return toOrderDto(saved);
     }
 
@@ -347,7 +358,25 @@ public class OrderService {
 
         Order savedOrder = orderRepository.save(order);
         log.info("Payment verified successfully for Order ID {}. Payment ID: {}", orderId, request.getRazorpayPaymentId());
+
+        // Dispatch Email & WhatsApp order confirmation notifications
+        sendOrderNotifications(savedOrder);
+
         return toOrderDto(savedOrder);
+    }
+
+    private void sendOrderNotifications(Order order) {
+        try {
+            emailService.sendOrderConfirmationEmail(order);
+        } catch (Exception e) {
+            log.error("Failed to send order email notification for order {}: {}", order.getId(), e.getMessage());
+        }
+
+        try {
+            whatsAppService.sendOrderConfirmationWhatsApp(order);
+        } catch (Exception e) {
+            log.error("Failed to send order WhatsApp notification for order {}: {}", order.getId(), e.getMessage());
+        }
     }
 
     private String calculateHmacSha256(String data, String secret) {

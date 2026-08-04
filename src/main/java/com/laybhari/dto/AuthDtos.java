@@ -48,6 +48,12 @@ public class AuthDtos {
     }
 
     @Data
+    public static class FirebaseLoginRequest {
+        @NotBlank(message = "Firebase ID token is required")
+        private String idToken;
+    }
+
+    @Data
     public static class UpdateProfileRequest {
         private String name;
         private String email;

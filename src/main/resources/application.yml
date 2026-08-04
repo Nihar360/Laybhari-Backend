@@ -16,6 +16,26 @@ spring:
       hibernate:
         format_sql: true
 
+  mail:
+    host: ${SPRING_MAIL_HOST:smtp.gmail.com}
+    port: ${SPRING_MAIL_PORT:587}
+    username: ${SPRING_MAIL_USERNAME:nikunaik2003@gmail.com}
+    password: ${SPRING_MAIL_PASSWORD:vphrhkkxpmnsxgf}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
+firebase:
+  credentials-path: ${FIREBASE_CREDENTIALS_PATH:firebase-service-account.json}
+
+whatsapp:
+  phone-number-id: ${WHATSAPP_PHONE_NUMBER_ID:}
+  access-token: ${WHATSAPP_ACCESS_TOKEN:}
+  template-name: ${WHATSAPP_TEMPLATE_NAME:hello_world}
+
 app:
   jwt:
     secret: ${JWT_SECRET:laybhari_jwt_super_secret_key_minimum_32_characters_long_2026}
@@ -27,3 +47,4 @@ razorpay:
 
 cors:
   allowed-origins: ${ALLOWED_ORIGINS:http://localhost:5173,http://localhost:3000,http://localhost:4173,https://*.vercel.app,*}
+
