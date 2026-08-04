@@ -39,11 +39,6 @@ public class AuthController {
         return ResponseEntity.ok(authService.verifyOtp(request));
     }
 
-    @PostMapping("/firebase-login")
-    public ResponseEntity<AuthResponse> firebaseLogin(@Valid @RequestBody FirebaseLoginRequest request) {
-        return ResponseEntity.ok(authService.verifyFirebaseTokenAndLogin(request));
-    }
-
     @PutMapping("/profile")
     public ResponseEntity<AuthResponse> updateProfile(@RequestBody UpdateProfileRequest request, Authentication authentication) {
         if (authentication == null || authentication.getName() == null) {

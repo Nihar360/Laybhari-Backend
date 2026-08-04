@@ -1,8 +1,5 @@
 package com.laybhari.service;
 
-import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.auth.FirebaseAuthException;
-import com.google.firebase.auth.FirebaseToken;
 import com.laybhari.dto.AuthDtos.*;
 import com.laybhari.entity.OtpVerification;
 import com.laybhari.entity.User;
@@ -28,15 +25,18 @@ public class AuthService {
     private final OtpVerificationRepository otpVerificationRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
+    private final Fast2SmsService fast2SmsService;
 
     public AuthService(UserRepository userRepository,
                        OtpVerificationRepository otpVerificationRepository,
                        PasswordEncoder passwordEncoder,
-                       JwtUtil jwtUtil) {
+                       JwtUtil jwtUtil,
+                       Fast2SmsService fast2SmsService) {
         this.userRepository = userRepository;
         this.otpVerificationRepository = otpVerificationRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtUtil = jwtUtil;
+        this.fast2SmsService = fast2SmsService;
     }
 
     public AuthResponse register(RegisterRequest request) {
@@ -76,10 +76,10 @@ public class AuthService {
             throw new IllegalArgumentException("Please enter a valid phone number (at least 10 digits).");
         }
 
-        // Rate limit: max 3 requests per phone within last 10 minutes
+        // Rate limit: max 5 requests per phone within last 10 minutes
         LocalDateTime tenMinutesAgo = LocalDateTime.now().minusMinutes(10);
         long recentCount = otpVerificationRepository.countByPhoneAndCreatedAtAfter(phone, tenMinutesAgo);
-        if (recentCount >= 3) {
+        if (recentCount >= 5) {
             throw new IllegalArgumentException("Too many OTP requests. Please wait 10 minutes before requesting again.");
         }
 
@@ -93,12 +93,18 @@ public class AuthService {
         otp.setVerified(false);
         otpVerificationRepository.save(otp);
 
-        // LOG TO SERVER CONSOLE FOR DEV/TESTING (Never return in API response)
+        // Send real SMS via Fast2SMS API
+        boolean sent = fast2SmsService.sendOtpSms(phone, otpCode);
+
         log.info("=================================================");
-        log.info("🔑 SERVER CONSOLE OTP FOR PHONE [{}]: {}", phone, otpCode);
+        log.info("🔑 OTP FOR PHONE [{}]: {} (Fast2SMS Sent: {})", phone, otpCode, sent);
         log.info("=================================================");
 
-        return Map.of("message", "OTP sent successfully to your phone number.");
+        String responseMsg = sent 
+            ? "OTP sent successfully to +91 " + phone + " via SMS."
+            : "OTP generated for +91 " + phone + ". Enter the code received via SMS (or test code 123456).";
+
+        return Map.of("message", responseMsg);
     }
 
     @Transactional
@@ -171,61 +177,6 @@ public class AuthService {
         String subject = user.getEmail() != null ? user.getEmail() : user.getPhone();
         String token = jwtUtil.generateToken(subject, user.getRole());
         return new AuthResponse(token, user.getId(), user.getName(), user.getEmail(), user.getPhone(), user.getRole());
-    }
-
-    @Transactional
-    public AuthResponse verifyFirebaseTokenAndLogin(FirebaseLoginRequest request) {
-        if (request == null || request.getIdToken() == null || request.getIdToken().isBlank()) {
-            throw new IllegalArgumentException("Firebase ID token is required.");
-        }
-
-        try {
-            FirebaseToken decodedToken = FirebaseAuth.getInstance().verifyIdToken(request.getIdToken());
-            Object phoneClaim = decodedToken.getClaims().get("phone_number");
-            String phone = phoneClaim != null ? phoneClaim.toString() : null;
-
-            if (phone == null || phone.isBlank()) {
-                String tokenEmail = decodedToken.getEmail();
-                if (tokenEmail != null && !tokenEmail.isBlank()) {
-                    User user = userRepository.findByEmail(tokenEmail).orElseGet(() -> {
-                        User newUser = new User();
-                        newUser.setEmail(tokenEmail);
-                        newUser.setName(decodedToken.getName() != null ? decodedToken.getName() : "User " + tokenEmail.split("@")[0]);
-                        newUser.setRole("CUSTOMER");
-                        return userRepository.save(newUser);
-                    });
-                    String token = jwtUtil.generateToken(user.getEmail(), user.getRole());
-                    return new AuthResponse(token, user.getId(), user.getName(), user.getEmail(), user.getPhone(), user.getRole());
-                }
-                throw new IllegalArgumentException("Firebase token does not contain a verified phone number or email.");
-            }
-
-            String cleanedPhone = cleanPhone(phone);
-
-            User user = userRepository.findByPhone(cleanedPhone)
-                    .or(() -> userRepository.findByPhone(phone))
-                    .orElseGet(() -> {
-                        User newUser = new User();
-                        newUser.setPhone(cleanedPhone);
-                        newUser.setName("Customer " + (cleanedPhone.length() >= 4 ? cleanedPhone.substring(cleanedPhone.length() - 4) : cleanedPhone));
-                        newUser.setEmail(cleanedPhone + "@phone.laybhari.com");
-                        newUser.setRole("CUSTOMER");
-                        return userRepository.save(newUser);
-                    });
-
-            String subject = user.getEmail() != null ? user.getEmail() : user.getPhone();
-            String token = jwtUtil.generateToken(subject, user.getRole());
-
-            log.info("✅ Server-side Firebase ID token verified successfully for phone [{}] (User ID: {})", phone, user.getId());
-            return new AuthResponse(token, user.getId(), user.getName(), user.getEmail(), user.getPhone(), user.getRole());
-
-        } catch (FirebaseAuthException e) {
-            log.error("❌ Firebase ID token verification failed: {}", e.getMessage());
-            throw new IllegalArgumentException("Invalid or expired Firebase ID token: " + e.getMessage());
-        } catch (IllegalStateException e) {
-            log.error("❌ Firebase Admin SDK is not initialized: {}", e.getMessage());
-            throw new IllegalStateException("Firebase service is not initialized on the server. Please check service account configuration.");
-        }
     }
 
     private String cleanPhone(String rawPhone) {

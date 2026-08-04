@@ -28,8 +28,9 @@ spring:
           starttls:
             enable: true
 
-firebase:
-  credentials-path: ${FIREBASE_CREDENTIALS_PATH:firebase-service-account.json}
+fast2sms:
+  api:
+    key: ${FAST2SMS_API_KEY:fN2BwaYhr7Ksq1Fxl0pZmbjJcPt6ikE9HnMLQWTID43GugeUSXuFnfEU2c3Kx9Hr04lCNBGmSLzXi7Od}
 
 whatsapp:
   phone-number-id: ${WHATSAPP_PHONE_NUMBER_ID:}

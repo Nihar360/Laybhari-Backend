@@ -47,11 +47,6 @@ public class AuthDtos {
         private String otp;
     }
 
-    @Data
-    public static class FirebaseLoginRequest {
-        @NotBlank(message = "Firebase ID token is required")
-        private String idToken;
-    }
 
     @Data
     public static class UpdateProfileRequest {
