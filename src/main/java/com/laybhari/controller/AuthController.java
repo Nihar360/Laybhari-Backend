@@ -34,6 +34,11 @@ public class AuthController {
         return ResponseEntity.ok(authService.sendOtp(request));
     }
 
+    @PostMapping("/otp/verify")
+    public ResponseEntity<AuthResponse> verifyOtp(@Valid @RequestBody VerifyOtpRequest request) {
+        return ResponseEntity.ok(authService.verifyOtp(request));
+    }
+
     @PostMapping("/firebase-login")
     public ResponseEntity<AuthResponse> firebaseLogin(@Valid @RequestBody FirebaseLoginRequest request) {
         return ResponseEntity.ok(authService.verifyFirebaseTokenAndLogin(request));
