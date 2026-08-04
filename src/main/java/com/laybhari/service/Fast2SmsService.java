@@ -11,8 +11,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
-import java.util.HashMap;
-import java.util.Map;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 
 @Service
 public class Fast2SmsService {
@@ -33,25 +33,47 @@ public class Fast2SmsService {
         try {
             String url = "https://www.fast2sms.com/dev/bulkV2";
 
-            HttpHeaders headers = new HttpHeaders();
-            headers.set("authorization", apiKey.trim());
-            headers.setContentType(MediaType.APPLICATION_JSON);
-
             String cleanedPhone = phone.replaceAll("[^0-9]", "");
             if (cleanedPhone.length() > 10) {
                 cleanedPhone = cleanedPhone.substring(cleanedPhone.length() - 10);
             }
 
-            Map<String, Object> body = new HashMap<>();
-            body.put("route", "otp");
-            body.put("variables_values", otpCode);
-            body.put("numbers", cleanedPhone);
+            HttpHeaders headers = new HttpHeaders();
+            headers.set("authorization", apiKey.trim());
+            headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
 
-            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(body, headers);
+            // Try Quick SMS Route (route=q) first as it works without website verification
+            MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
+            body.add("route", "q");
+            body.add("message", "Your OTP verification code for Laybhari Vlogs is " + otpCode + ". Valid for 5 minutes.");
+            body.add("flash", "0");
+            body.add("numbers", cleanedPhone);
+
+            HttpEntity<MultiValueMap<String, String>> entity = new HttpEntity<>(body, headers);
             ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.POST, entity, String.class);
 
-            log.info("📲 Fast2SMS OTP response for [{}]: status={} body={}", cleanedPhone, response.getStatusCode(), response.getBody());
-            return response.getStatusCode().is2xxSuccessful();
+            String resBody = response.getBody() != null ? response.getBody() : "";
+            log.info("📲 Fast2SMS OTP response for [{}]: status={} body={}", cleanedPhone, response.getStatusCode(), resBody);
+
+            boolean isSuccess = response.getStatusCode().is2xxSuccessful() && (resBody.contains("\"return\":true") || resBody.contains("\"return\": true"));
+            if (!isSuccess) {
+                // Fallback to OTP route if route=q returns error
+                MultiValueMap<String, String> otpBody = new LinkedMultiValueMap<>();
+                otpBody.add("route", "otp");
+                otpBody.add("variables_values", otpCode);
+                otpBody.add("numbers", cleanedPhone);
+
+                HttpEntity<MultiValueMap<String, String>> otpEntity = new HttpEntity<>(otpBody, headers);
+                ResponseEntity<String> otpResponse = restTemplate.exchange(url, HttpMethod.POST, otpEntity, String.class);
+                String otpResBody = otpResponse.getBody() != null ? otpResponse.getBody() : "";
+                log.info("📲 Fast2SMS OTP fallback response for [{}]: status={} body={}", cleanedPhone, otpResponse.getStatusCode(), otpResBody);
+                isSuccess = otpResponse.getStatusCode().is2xxSuccessful() && (otpResBody.contains("\"return\":true") || otpResBody.contains("\"return\": true"));
+            }
+
+            if (!isSuccess) {
+                log.warn("⚠️ Fast2SMS request failed. Body: {}", resBody);
+            }
+            return isSuccess;
         } catch (Exception e) {
             log.error("❌ Fast2SMS error sending SMS to [{}]: {}", phone, e.getMessage());
             return false;
